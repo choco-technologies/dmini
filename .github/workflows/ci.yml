@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop, feature/**, copilot/** ]
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    container:
+      image: chocotechnologies/dmod:1.0.4
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Build dmini project
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. -DDMOD_MODE=DMOD_MODULE
+          cmake --build .
+      
+      - name: Verify module files
+        run: |
+          echo "Checking for module files..."
+          ls -lh build/dmf/
+          test -f build/dmf/dmini.dmf
+          test -f build/dmf/dmini_version.txt
+          test -f build/dmfc/dmini.dmfc
+          echo "All module files present"
