@@ -40,7 +40,7 @@ typedef struct dmini_context* dmini_context_t;
  * 
  * @return Pointer to INI context or NULL on error
  */
-DMOD_EXPORT dmini_context_t dmini_create(void);
+dmini_context_t dmini_create(void);
 
 /**
  * @brief Free INI context
@@ -49,7 +49,7 @@ DMOD_EXPORT dmini_context_t dmini_create(void);
  * 
  * @param ctx INI context to free
  */
-DMOD_EXPORT void dmini_destroy(dmini_context_t ctx);
+void dmini_destroy(dmini_context_t ctx);
 
 /**
  * @brief Parse INI file from string
@@ -60,7 +60,7 @@ DMOD_EXPORT void dmini_destroy(dmini_context_t ctx);
  * @param data String containing INI file contents
  * @return DMINI_OK on success, error code on failure
  */
-DMOD_EXPORT int dmini_parse_string(dmini_context_t ctx, const char* data);
+int dmini_parse_string(dmini_context_t ctx, const char* data);
 
 /**
  * @brief Parse INI file
@@ -71,7 +71,7 @@ DMOD_EXPORT int dmini_parse_string(dmini_context_t ctx, const char* data);
  * @param filename Path to INI file
  * @return DMINI_OK on success, error code on failure
  */
-DMOD_EXPORT int dmini_parse_file(dmini_context_t ctx, const char* filename);
+int dmini_parse_file(dmini_context_t ctx, const char* filename);
 
 /**
  * @brief Generate INI file to string
@@ -82,7 +82,7 @@ DMOD_EXPORT int dmini_parse_file(dmini_context_t ctx, const char* filename);
  * @param ctx INI context
  * @return Allocated string containing INI file contents, or NULL on error
  */
-DMOD_EXPORT char* dmini_generate_string(dmini_context_t ctx);
+char* dmini_generate_string(dmini_context_t ctx);
 
 /**
  * @brief Generate INI file
@@ -93,7 +93,7 @@ DMOD_EXPORT char* dmini_generate_string(dmini_context_t ctx);
  * @param filename Path to output INI file
  * @return DMINI_OK on success, error code on failure
  */
-DMOD_EXPORT int dmini_generate_file(dmini_context_t ctx, const char* filename);
+int dmini_generate_file(dmini_context_t ctx, const char* filename);
 
 /**
  * @brief Get string value from INI context
@@ -106,10 +106,10 @@ DMOD_EXPORT int dmini_generate_file(dmini_context_t ctx, const char* filename);
  * @param default_value Default value if key not found
  * @return Value string or default_value if not found
  */
-DMOD_EXPORT const char* dmini_get_string(dmini_context_t ctx, 
-                                          const char* section, 
-                                          const char* key, 
-                                          const char* default_value);
+const char* dmini_get_string(dmini_context_t ctx, 
+                              const char* section, 
+                              const char* key, 
+                              const char* default_value);
 
 /**
  * @brief Get integer value from INI context
@@ -122,10 +122,10 @@ DMOD_EXPORT const char* dmini_get_string(dmini_context_t ctx,
  * @param default_value Default value if key not found
  * @return Integer value or default_value if not found
  */
-DMOD_EXPORT int dmini_get_int(dmini_context_t ctx, 
-                               const char* section, 
-                               const char* key, 
-                               int default_value);
+int dmini_get_int(dmini_context_t ctx, 
+                  const char* section, 
+                  const char* key, 
+                  int default_value);
 
 /**
  * @brief Set string value in INI context
@@ -139,10 +139,10 @@ DMOD_EXPORT int dmini_get_int(dmini_context_t ctx,
  * @param value Value string
  * @return DMINI_OK on success, error code on failure
  */
-DMOD_EXPORT int dmini_set_string(dmini_context_t ctx, 
-                                  const char* section, 
-                                  const char* key, 
-                                  const char* value);
+int dmini_set_string(dmini_context_t ctx, 
+                     const char* section, 
+                     const char* key, 
+                     const char* value);
 
 /**
  * @brief Set integer value in INI context
@@ -156,10 +156,10 @@ DMOD_EXPORT int dmini_set_string(dmini_context_t ctx,
  * @param value Integer value
  * @return DMINI_OK on success, error code on failure
  */
-DMOD_EXPORT int dmini_set_int(dmini_context_t ctx, 
-                               const char* section, 
-                               const char* key, 
-                               int value);
+int dmini_set_int(dmini_context_t ctx, 
+                  const char* section, 
+                  const char* key, 
+                  int value);
 
 /**
  * @brief Check if section exists
@@ -168,7 +168,7 @@ DMOD_EXPORT int dmini_set_int(dmini_context_t ctx,
  * @param section Section name
  * @return 1 if section exists, 0 otherwise
  */
-DMOD_EXPORT int dmini_has_section(dmini_context_t ctx, const char* section);
+int dmini_has_section(dmini_context_t ctx, const char* section);
 
 /**
  * @brief Check if key exists in section
@@ -178,9 +178,9 @@ DMOD_EXPORT int dmini_has_section(dmini_context_t ctx, const char* section);
  * @param key Key name
  * @return 1 if key exists, 0 otherwise
  */
-DMOD_EXPORT int dmini_has_key(dmini_context_t ctx, 
-                               const char* section, 
-                               const char* key);
+int dmini_has_key(dmini_context_t ctx, 
+                  const char* section, 
+                  const char* key);
 
 /**
  * @brief Remove section from INI context
@@ -189,7 +189,7 @@ DMOD_EXPORT int dmini_has_key(dmini_context_t ctx,
  * @param section Section name
  * @return DMINI_OK on success, error code on failure
  */
-DMOD_EXPORT int dmini_remove_section(dmini_context_t ctx, const char* section);
+int dmini_remove_section(dmini_context_t ctx, const char* section);
 
 /**
  * @brief Remove key from section
@@ -199,8 +199,8 @@ DMOD_EXPORT int dmini_remove_section(dmini_context_t ctx, const char* section);
  * @param key Key name
  * @return DMINI_OK on success, error code on failure
  */
-DMOD_EXPORT int dmini_remove_key(dmini_context_t ctx, 
-                                  const char* section, 
-                                  const char* key);
+int dmini_remove_key(dmini_context_t ctx, 
+                     const char* section, 
+                     const char* key);
 
 #endif // DMINI_H

@@ -2,6 +2,11 @@
 #include "dmod.h"
 #include "dmini.h"
 
+// String function declarations (provided by DMOD module)
+size_t strlen(const char *s);
+void *memcpy(void *dest, const void *src, size_t n);
+int strcmp(const char *s1, const char *s2);
+
 /**
  * @brief Key-value pair structure
  */
