@@ -76,3 +76,15 @@ dmod_add_library(${DMOD_MODULE_NAME} ${DMOD_MODULE_VERSION}
 target_include_directories(${DMOD_MODULE_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
+# ======================================================================
+#               test_dmini Application
+# ======================================================================
+# Add test_dmini application
+dmod_add_executable(test_dmini ${DMOD_MODULE_VERSION}
+    apps/test_dmini/test_dmini.c
+)
+
+target_include_directories(test_dmini PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)

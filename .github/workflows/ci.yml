@@ -32,4 +32,15 @@ jobs:
           ls -lh build/dmf/
           test -f build/dmf/dmini.dmf
           test -f build/dmf/dmini_version.txt
+          test -f build/dmf/test_dmini.dmf
           echo "Module files present"
+      
+      - name: Run tests with dmod_loader
+        run: |
+          echo "Running dmini tests..."
+          # Run tests by loading both dmini and test_dmini modules
+          # dmod_loader should be available in the container
+          echo "Loading dmini module and running tests..."
+          dmod_loader build/dmf/dmini.dmf build/dmf/test_dmini.dmf
+          
+          echo "Tests completed successfully"
