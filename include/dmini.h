@@ -2,6 +2,7 @@
 #define DMINI_H
 
 #include "dmod.h"
+#include "dmini_defs.h"
 
 /**
  * @brief DMINI - DMOD INI File Parser Module
@@ -40,7 +41,7 @@ typedef struct dmini_context* dmini_context_t;
  * 
  * @return Pointer to INI context or NULL on error
  */
-dmini_context_t dmini_create(void);
+dmod_dmini_api(1.0, dmini_context_t, _create, (void));
 
 /**
  * @brief Free INI context
@@ -49,7 +50,7 @@ dmini_context_t dmini_create(void);
  * 
  * @param ctx INI context to free
  */
-void dmini_destroy(dmini_context_t ctx);
+dmod_dmini_api(1.0, void, _destroy, (dmini_context_t ctx));
 
 /**
  * @brief Parse INI file from string
@@ -60,7 +61,7 @@ void dmini_destroy(dmini_context_t ctx);
  * @param data String containing INI file contents
  * @return DMINI_OK on success, error code on failure
  */
-int dmini_parse_string(dmini_context_t ctx, const char* data);
+dmod_dmini_api(1.0, int, _parse_string, (dmini_context_t ctx, const char* data));
 
 /**
  * @brief Parse INI file
@@ -71,18 +72,21 @@ int dmini_parse_string(dmini_context_t ctx, const char* data);
  * @param filename Path to INI file
  * @return DMINI_OK on success, error code on failure
  */
-int dmini_parse_file(dmini_context_t ctx, const char* filename);
+dmod_dmini_api(1.0, int, _parse_file, (dmini_context_t ctx, const char* filename));
 
 /**
  * @brief Generate INI file to string
  * 
  * Generates an INI file string from the context.
- * The returned string must be freed using Dmod_Free().
+ * If buffer is NULL, returns the required buffer size.
+ * If buffer is not NULL, fills it with the INI data.
  * 
  * @param ctx INI context
- * @return Allocated string containing INI file contents, or NULL on error
+ * @param buffer Buffer to write to (NULL to query size)
+ * @param buffer_size Size of the buffer
+ * @return Required buffer size, or negative error code
  */
-char* dmini_generate_string(dmini_context_t ctx);
+dmod_dmini_api(1.0, int, _generate_string, (dmini_context_t ctx, char* buffer, size_t buffer_size));
 
 /**
  * @brief Generate INI file
@@ -93,7 +97,7 @@ char* dmini_generate_string(dmini_context_t ctx);
  * @param filename Path to output INI file
  * @return DMINI_OK on success, error code on failure
  */
-int dmini_generate_file(dmini_context_t ctx, const char* filename);
+dmod_dmini_api(1.0, int, _generate_file, (dmini_context_t ctx, const char* filename));
 
 /**
  * @brief Get string value from INI context
@@ -106,10 +110,10 @@ int dmini_generate_file(dmini_context_t ctx, const char* filename);
  * @param default_value Default value if key not found
  * @return Value string or default_value if not found
  */
-const char* dmini_get_string(dmini_context_t ctx, 
-                              const char* section, 
-                              const char* key, 
-                              const char* default_value);
+dmod_dmini_api(1.0, const char*, _get_string, (dmini_context_t ctx, 
+                                                const char* section, 
+                                                const char* key, 
+                                                const char* default_value));
 
 /**
  * @brief Get integer value from INI context
@@ -122,10 +126,10 @@ const char* dmini_get_string(dmini_context_t ctx,
  * @param default_value Default value if key not found
  * @return Integer value or default_value if not found
  */
-int dmini_get_int(dmini_context_t ctx, 
-                  const char* section, 
-                  const char* key, 
-                  int default_value);
+dmod_dmini_api(1.0, int, _get_int, (dmini_context_t ctx, 
+                                     const char* section, 
+                                     const char* key, 
+                                     int default_value));
 
 /**
  * @brief Set string value in INI context
@@ -139,10 +143,10 @@ int dmini_get_int(dmini_context_t ctx,
  * @param value Value string
  * @return DMINI_OK on success, error code on failure
  */
-int dmini_set_string(dmini_context_t ctx, 
-                     const char* section, 
-                     const char* key, 
-                     const char* value);
+dmod_dmini_api(1.0, int, _set_string, (dmini_context_t ctx, 
+                                        const char* section, 
+                                        const char* key, 
+                                        const char* value));
 
 /**
  * @brief Set integer value in INI context
@@ -156,10 +160,10 @@ int dmini_set_string(dmini_context_t ctx,
  * @param value Integer value
  * @return DMINI_OK on success, error code on failure
  */
-int dmini_set_int(dmini_context_t ctx, 
-                  const char* section, 
-                  const char* key, 
-                  int value);
+dmod_dmini_api(1.0, int, _set_int, (dmini_context_t ctx, 
+                                     const char* section, 
+                                     const char* key, 
+                                     int value));
 
 /**
  * @brief Check if section exists
@@ -168,7 +172,7 @@ int dmini_set_int(dmini_context_t ctx,
  * @param section Section name
  * @return 1 if section exists, 0 otherwise
  */
-int dmini_has_section(dmini_context_t ctx, const char* section);
+dmod_dmini_api(1.0, int, _has_section, (dmini_context_t ctx, const char* section));
 
 /**
  * @brief Check if key exists in section
@@ -178,9 +182,9 @@ int dmini_has_section(dmini_context_t ctx, const char* section);
  * @param key Key name
  * @return 1 if key exists, 0 otherwise
  */
-int dmini_has_key(dmini_context_t ctx, 
-                  const char* section, 
-                  const char* key);
+dmod_dmini_api(1.0, int, _has_key, (dmini_context_t ctx, 
+                                     const char* section, 
+                                     const char* key));
 
 /**
  * @brief Remove section from INI context
@@ -189,7 +193,7 @@ int dmini_has_key(dmini_context_t ctx,
  * @param section Section name
  * @return DMINI_OK on success, error code on failure
  */
-int dmini_remove_section(dmini_context_t ctx, const char* section);
+dmod_dmini_api(1.0, int, _remove_section, (dmini_context_t ctx, const char* section));
 
 /**
  * @brief Remove key from section
@@ -199,8 +203,8 @@ int dmini_remove_section(dmini_context_t ctx, const char* section);
  * @param key Key name
  * @return DMINI_OK on success, error code on failure
  */
-int dmini_remove_key(dmini_context_t ctx, 
-                     const char* section, 
-                     const char* key);
+dmod_dmini_api(1.0, int, _remove_key, (dmini_context_t ctx, 
+                                        const char* section, 
+                                        const char* key));
 
 #endif // DMINI_H

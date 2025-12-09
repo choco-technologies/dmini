@@ -1,11 +1,7 @@
 #define DMOD_ENABLE_REGISTRATION    ON
 #include "dmod.h"
 #include "dmini.h"
-
-// String function declarations (provided by DMOD module)
-size_t strlen(const char *s);
-void *memcpy(void *dest, const void *src, size_t n);
-int strcmp(const char *s1, const char *s2);
+#include <string.h>
 
 /**
  * @brief Key-value pair structure
@@ -73,37 +69,16 @@ static char* trim_whitespace(char* str)
     return str;
 }
 
-/**
- * @brief Duplicate string using SAL malloc
- */
-static char* string_duplicate(const char* str)
-{
-    if (!str)
-    {
-        return NULL;
-    }
-    
-    size_t len = strlen(str);
-    char* result = (char*)Dmod_Malloc(len + 1);
-    if (result)
-    {
-        memcpy(result, str, len + 1);
-    }
-    return result;
-}
+
 
 /**
  * @brief Compare section names (handles NULL values)
  */
 static int section_names_equal(const char* name1, const char* name2)
 {
-    if (name1 == NULL && name2 == NULL)
-    {
-        return 1;
-    }
     if (name1 == NULL || name2 == NULL)
     {
-        return 0;
+        return name1 == name2;
     }
     return strcmp(name1, name2) == 0;
 }
@@ -167,7 +142,7 @@ static dmini_section_t* create_section(const char* name)
     
     if (name)
     {
-        section->name = string_duplicate(name);
+        section->name = Dmod_StrDup(name);
         if (!section->name)
         {
             Dmod_Free(section);
@@ -196,8 +171,8 @@ static dmini_pair_t* create_pair(const char* key, const char* value)
         return NULL;
     }
     
-    pair->key = string_duplicate(key);
-    pair->value = string_duplicate(value);
+    pair->key = Dmod_StrDup(key);
+    pair->value = Dmod_StrDup(value);
     pair->next = NULL;
     
     if (!pair->key || !pair->value)
@@ -321,7 +296,7 @@ static int set_pair_in_section(dmini_section_t* section, const char* key, const 
         {
             Dmod_Free(pair->value);
         }
-        pair->value = string_duplicate(value);
+        pair->value = Dmod_StrDup(value);
         if (!pair->value)
         {
             return DMINI_ERR_MEMORY;
@@ -435,7 +410,7 @@ int dmini_parse_string(dmini_context_t ctx, const char* data)
     }
     
     // Duplicate data so we can modify it
-    char* buffer = string_duplicate(data);
+    char* buffer = Dmod_StrDup(data);
     if (!buffer)
     {
         return DMINI_ERR_MEMORY;
@@ -548,39 +523,84 @@ int dmini_parse_file(dmini_context_t ctx, const char* filename)
         return DMINI_ERR_FILE;
     }
     
-    // Get file size
-    size_t file_size = Dmod_FileSize(file);
+    dmini_section_t* current_section = ctx->sections; // Start with global section
+    char line_buffer[256];
     
-    // Allocate buffer
-    char* buffer = (char*)Dmod_Malloc(file_size + 1);
-    if (!buffer)
+    // Read file line by line
+    while (Dmod_FileReadLine(line_buffer, sizeof(line_buffer), file) != NULL)
     {
-        Dmod_FileClose(file);
-        return DMINI_ERR_MEMORY;
+        // Trim whitespace
+        char* line = trim_whitespace(line_buffer);
+        
+        // Skip empty lines and comments
+        if (*line == '\0' || *line == ';' || *line == '#')
+        {
+            continue;
+        }
+        
+        // Check for section header
+        if (*line == '[')
+        {
+            char* section_end = line + 1;
+            while (*section_end && *section_end != ']')
+            {
+                section_end++;
+            }
+            
+            if (*section_end == ']')
+            {
+                *section_end = '\0';
+                char* section_name = trim_whitespace(line + 1);
+                
+                current_section = get_or_create_section(ctx, section_name);
+                if (!current_section)
+                {
+                    Dmod_FileClose(file);
+                    return DMINI_ERR_MEMORY;
+                }
+            }
+            
+            continue;
+        }
+        
+        // Parse key=value
+        char* equals = line;
+        while (*equals && *equals != '=')
+        {
+            equals++;
+        }
+        
+        if (*equals == '=')
+        {
+            *equals = '\0';
+            char* key = trim_whitespace(line);
+            char* value = trim_whitespace(equals + 1);
+            
+            if (*key)
+            {
+                int result = set_pair_in_section(current_section, key, value);
+                if (result != DMINI_OK)
+                {
+                    Dmod_FileClose(file);
+                    return result;
+                }
+            }
+        }
     }
     
-    // Read file
-    size_t bytes_read = Dmod_FileRead(buffer, 1, file_size, file);
-    buffer[bytes_read] = '\0';
-    
     Dmod_FileClose(file);
-    
-    // Parse string
-    int result = dmini_parse_string(ctx, buffer);
-    Dmod_Free(buffer);
-    
-    return result;
+    return DMINI_OK;
 }
 
-char* dmini_generate_string(dmini_context_t ctx)
+int dmini_generate_string(dmini_context_t ctx, char* buffer, size_t buffer_size)
 {
     if (!ctx)
     {
-        return NULL;
+        return DMINI_ERR_INVALID;
     }
     
     // Calculate required buffer size
-    size_t buffer_size = 0;
+    size_t required_size = 0;
     
     dmini_section_t* section = ctx->sections;
     while (section)
@@ -588,7 +608,7 @@ char* dmini_generate_string(dmini_context_t ctx)
         // Section header (skip global section)
         if (section->name)
         {
-            buffer_size += strlen(section->name) + 3; // [name]\n
+            required_size += strlen(section->name) + 3; // [name]\n
         }
         
         // Key-value pairs
@@ -598,26 +618,34 @@ char* dmini_generate_string(dmini_context_t ctx)
             // Validate pair data before calculating size
             if (!pair->key || !pair->value)
             {
-                return NULL;
+                return DMINI_ERR_INVALID;
             }
-            buffer_size += strlen(pair->key) + strlen(pair->value) + 2; // key=value\n
+            required_size += strlen(pair->key) + strlen(pair->value) + 2; // key=value\n
             pair = pair->next;
         }
         
         // Empty line after section
         if (section->name && section->next)
         {
-            buffer_size += 1;
+            required_size += 1;
         }
         
         section = section->next;
     }
     
-    // Allocate buffer
-    char* buffer = (char*)Dmod_Malloc(buffer_size + 1);
+    // Add 1 for null terminator
+    required_size += 1;
+    
+    // If buffer is NULL, just return the required size
     if (!buffer)
     {
-        return NULL;
+        return (int)required_size;
+    }
+    
+    // Check if buffer is large enough
+    if (buffer_size < required_size)
+    {
+        return DMINI_ERR_MEMORY;
     }
     
     // Generate INI string
@@ -663,7 +691,7 @@ char* dmini_generate_string(dmini_context_t ctx)
     
     *pos = '\0';
     
-    return buffer;
+    return (int)required_size;
 }
 
 int dmini_generate_file(dmini_context_t ctx, const char* filename)
@@ -673,33 +701,59 @@ int dmini_generate_file(dmini_context_t ctx, const char* filename)
         return DMINI_ERR_INVALID;
     }
     
-    // Generate string
-    char* data = dmini_generate_string(ctx);
-    if (!data)
-    {
-        return DMINI_ERR_MEMORY;
-    }
-    
     // Open file for writing
     void* file = Dmod_FileOpen(filename, "w");
     if (!file)
     {
-        Dmod_Free(data);
         return DMINI_ERR_FILE;
     }
     
-    // Write data
-    size_t data_len = strlen(data);
-    size_t bytes_written = Dmod_FileWrite(data, 1, data_len, file);
+    // Write sections directly to file
+    dmini_section_t* section = ctx->sections;
+    char line_buffer[256];
+    
+    while (section)
+    {
+        // Section header (skip global section)
+        if (section->name)
+        {
+            int len = Dmod_SnPrintf(line_buffer, sizeof(line_buffer), "[%s]\n", section->name);
+            if (len > 0)
+            {
+                Dmod_FileWrite(line_buffer, 1, len, file);
+            }
+        }
+        
+        // Key-value pairs
+        dmini_pair_t* pair = section->pairs;
+        while (pair)
+        {
+            if (!pair->key || !pair->value)
+            {
+                Dmod_FileClose(file);
+                return DMINI_ERR_INVALID;
+            }
+            
+            int len = Dmod_SnPrintf(line_buffer, sizeof(line_buffer), "%s=%s\n", 
+                                     pair->key, pair->value);
+            if (len > 0)
+            {
+                Dmod_FileWrite(line_buffer, 1, len, file);
+            }
+            
+            pair = pair->next;
+        }
+        
+        // Empty line after section
+        if (section->name && section->next)
+        {
+            Dmod_FileWrite("\n", 1, 1, file);
+        }
+        
+        section = section->next;
+    }
     
     Dmod_FileClose(file);
-    Dmod_Free(data);
-    
-    if (bytes_written != data_len)
-    {
-        return DMINI_ERR_FILE;
-    }
-    
     return DMINI_OK;
 }
 
