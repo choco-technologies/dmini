@@ -524,6 +524,12 @@ int dmini_parse_file(dmini_context_t ctx, const char* filename)
     }
     
     dmini_section_t* current_section = ctx->sections; // Start with global section
+    if (!current_section)
+    {
+        Dmod_FileClose(file);
+        return DMINI_ERR_INVALID;
+    }
+    
     char line_buffer[256];
     
     // Read file line by line
@@ -718,9 +724,14 @@ int dmini_generate_file(dmini_context_t ctx, const char* filename)
         if (section->name)
         {
             int len = Dmod_SnPrintf(line_buffer, sizeof(line_buffer), "[%s]\n", section->name);
-            if (len > 0)
+            if (len > 0 && len < (int)sizeof(line_buffer))
             {
-                Dmod_FileWrite(line_buffer, 1, len, file);
+                size_t written = Dmod_FileWrite(line_buffer, 1, len, file);
+                if (written != (size_t)len)
+                {
+                    Dmod_FileClose(file);
+                    return DMINI_ERR_FILE;
+                }
             }
         }
         
@@ -736,9 +747,20 @@ int dmini_generate_file(dmini_context_t ctx, const char* filename)
             
             int len = Dmod_SnPrintf(line_buffer, sizeof(line_buffer), "%s=%s\n", 
                                      pair->key, pair->value);
-            if (len > 0)
+            if (len > 0 && len < (int)sizeof(line_buffer))
             {
-                Dmod_FileWrite(line_buffer, 1, len, file);
+                size_t written = Dmod_FileWrite(line_buffer, 1, len, file);
+                if (written != (size_t)len)
+                {
+                    Dmod_FileClose(file);
+                    return DMINI_ERR_FILE;
+                }
+            }
+            else if (len >= (int)sizeof(line_buffer))
+            {
+                // Line too long - truncated
+                Dmod_FileClose(file);
+                return DMINI_ERR_INVALID;
             }
             
             pair = pair->next;
@@ -747,7 +769,12 @@ int dmini_generate_file(dmini_context_t ctx, const char* filename)
         // Empty line after section
         if (section->name && section->next)
         {
-            Dmod_FileWrite("\n", 1, 1, file);
+            size_t written = Dmod_FileWrite("\n", 1, 1, file);
+            if (written != 1)
+            {
+                Dmod_FileClose(file);
+                return DMINI_ERR_FILE;
+            }
         }
         
         section = section->next;
