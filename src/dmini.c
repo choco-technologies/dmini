@@ -93,6 +93,22 @@ static char* string_duplicate(const char* str)
 }
 
 /**
+ * @brief Compare section names (handles NULL values)
+ */
+static int section_names_equal(const char* name1, const char* name2)
+{
+    if (name1 == NULL && name2 == NULL)
+    {
+        return 1;
+    }
+    if (name1 == NULL || name2 == NULL)
+    {
+        return 0;
+    }
+    return strcmp(name1, name2) == 0;
+}
+
+/**
  * @brief Find section by name
  */
 static dmini_section_t* find_section(dmini_context_t ctx, const char* section_name)
@@ -105,11 +121,7 @@ static dmini_section_t* find_section(dmini_context_t ctx, const char* section_na
     dmini_section_t* section = ctx->sections;
     while (section)
     {
-        if (section->name == NULL && section_name == NULL)
-        {
-            return section;
-        }
-        if (section->name && section_name && strcmp(section->name, section_name) == 0)
+        if (section_names_equal(section->name, section_name))
         {
             return section;
         }
@@ -153,7 +165,20 @@ static dmini_section_t* create_section(const char* name)
         return NULL;
     }
     
-    section->name = name ? string_duplicate(name) : NULL;
+    if (name)
+    {
+        section->name = string_duplicate(name);
+        if (!section->name)
+        {
+            Dmod_Free(section);
+            return NULL;
+        }
+    }
+    else
+    {
+        section->name = NULL;
+    }
+    
     section->pairs = NULL;
     section->next = NULL;
     
@@ -570,6 +595,11 @@ char* dmini_generate_string(dmini_context_t ctx)
         dmini_pair_t* pair = section->pairs;
         while (pair)
         {
+            // Validate pair data before calculating size
+            if (!pair->key || !pair->value)
+            {
+                return NULL;
+            }
             buffer_size += strlen(pair->key) + strlen(pair->value) + 2; // key=value\n
             pair = pair->next;
         }
@@ -759,18 +789,25 @@ int dmini_set_int(dmini_context_t ctx, const char* section, const char* key, int
     *p = '\0';
     
     int is_negative = 0;
+    unsigned int abs_value;
+    
     if (value < 0)
     {
         is_negative = 1;
-        value = -value;
+        // Handle INT_MIN safely by casting to unsigned
+        abs_value = (unsigned int)(-(value + 1)) + 1;
+    }
+    else
+    {
+        abs_value = (unsigned int)value;
     }
     
     // Convert digits
     do
     {
-        *--p = '0' + (value % 10);
-        value /= 10;
-    } while (value > 0);
+        *--p = '0' + (abs_value % 10);
+        abs_value /= 10;
+    } while (abs_value > 0);
     
     // Add sign
     if (is_negative)
