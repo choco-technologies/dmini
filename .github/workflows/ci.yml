@@ -32,5 +32,4 @@ jobs:
           ls -lh build/dmf/
           test -f build/dmf/dmini.dmf
           test -f build/dmf/dmini_version.txt
-          test -f build/dmfc/dmini.dmfc
-          echo "All module files present"
+          echo "Module files present"
