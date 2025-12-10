@@ -5,7 +5,7 @@
 # Main module file - always installed
 dmf=./dmini.dmf => ${DMOD_DMF_DIR}/${module}.dmf
 
-# Compiled module (if exists) - always installed
+# Compressed module
 dmfc=./dmini.dmfc => ${DMOD_DMF_DIR}/${module}.dmfc
 
 # Dependencies file (if exists)
