@@ -105,8 +105,19 @@ jobs:
           if [ -f $DMF_DIR/test_dmini.dmd ]; then
             cp $DMF_DIR/test_dmini.dmd release_package/
           fi
-                    
-          # Copy documentation and license
+          
+          # Copy .dmr resource files
+          cp dmini.dmr release_package/
+          cp test_dmini.dmr release_package/
+          
+          # Copy header files
+          mkdir -p release_package/include
+          cp include/dmini.h release_package/include/
+          cp $BUILD_DIR/dmini_defs.h release_package/include/
+          
+          # Copy documentation
+          mkdir -p release_package/docs
+          cp -r docs/* release_package/docs/
           cp README.md release_package/
           cp LICENSE release_package/
           
