@@ -37,13 +37,5 @@ jobs:
       
       - name: Run tests with dmod_loader
         run: |
-          echo "Running dmini tests..."
-          # Run tests by loading both dmini and test_dmini modules
-          # dmod_loader should be available in the container
-          echo "Loading dmini module and running tests..."
-          if dmod_loader build/dmf/dmini.dmf build/dmf/test_dmini.dmf; then
-            echo "Tests completed successfully"
-          else
-            echo "Tests FAILED with exit code $?"
-            exit 1
-          fi
+          export DMOD_DMF_DIR=$(pwd)/build/dmf
+          dmod_loader build/dmf/dmini.dmf build/dmf/test_dmini.dmf
