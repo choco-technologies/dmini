@@ -15,7 +15,7 @@ static int tests_passed = 0;
 static int tests_failed = 0;
 
 // Helper macros
-#define TEST_START(name) DMOD_LOG_INFO("TEST: %s\n", name)
+#define TEST_START(name) Dmod_Printf("TEST: %s\n", name)
 #define TEST_ASSERT(cond, msg) do { \
     if (!(cond)) { \
         DMOD_LOG_ERROR("  FAILED: %s\n", msg); \
@@ -24,7 +24,7 @@ static int tests_failed = 0;
     } \
 } while(0)
 #define TEST_PASS() do { \
-    DMOD_LOG_INFO("  PASSED\n"); \
+    Dmod_Printf("  PASSED\n"); \
     tests_passed++; \
 } while(0)
 
@@ -322,18 +322,18 @@ int main(int argc, char** argv)
     test_comments_whitespace();
     
     // Print summary
-    DMOD_LOG_INFO("\n=== Test Summary ===\n");
-    DMOD_LOG_INFO("Passed: %d\n", tests_passed);
-    DMOD_LOG_INFO("Failed: %d\n", tests_failed);
+    Dmod_Printf("\n=== Test Summary ===\n");
+    Dmod_Printf("Passed: %d\n", tests_passed);
+    Dmod_Printf("Failed: %d\n", tests_failed);
     
     if (tests_failed == 0)
     {
-        DMOD_LOG_INFO("All tests PASSED!\n");
+        Dmod_Printf("All tests PASSED!\n");
         return 0;
     }
     else
     {
-        DMOD_LOG_ERROR("Some tests FAILED!\n");
+        Dmod_Printf("Some tests FAILED!\n");
         return 1;
     }
 }
