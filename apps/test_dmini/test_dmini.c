@@ -302,17 +302,9 @@ static void test_comments_whitespace(void)
 }
 
 /**
- * @brief Module initialization
+ * @brief Main entry point for test application
  */
-void dmod_preinit(void)
-{
-    // Nothing to do
-}
-
-/**
- * @brief Module initialization
- */
-int dmod_init(const Dmod_Config_t *Config)
+int main(int argc, char** argv)
 {
     DMOD_LOG_INFO("=== DMINI Functionality Tests ===\n\n");
     
@@ -344,12 +336,4 @@ int dmod_init(const Dmod_Config_t *Config)
         DMOD_LOG_ERROR("Some tests FAILED!\n");
         return 1;
     }
-}
-
-/**
- * @brief Module deinitialization
- */
-void dmod_deinit(void)
-{
-    // Nothing to do
 }
