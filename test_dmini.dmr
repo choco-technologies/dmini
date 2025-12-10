@@ -1,0 +1,12 @@
+# DMOD Resource File for test_dmini
+# This file specifies where resources should be installed
+
+# === Core Module ===
+# Main module file - always installed
+dmf=./test_dmini.dmf => ${DMOD_DMF_DIR}/${module}.dmf
+
+# Compiled module (if exists) - always installed
+dmfc=./test_dmini.dmfc => ${DMOD_DMF_DIR}/${module}.dmfc
+
+# Version information
+version=./test_dmini_version.txt => ${destination}/${module}_version.txt

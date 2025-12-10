@@ -1,0 +1,33 @@
+# DMOD Resource File for dmini
+# This file specifies where resources should be installed
+
+# === Core Module ===
+# Main module file - always installed
+dmf=./dmini.dmf => ${DMOD_DMF_DIR}/${module}.dmf
+
+# Compiled module (if exists) - always installed
+dmfc=./dmini.dmfc => ${DMOD_DMF_DIR}/${module}.dmfc
+
+# Dependencies file (if exists)
+dmd=./dmini.dmd => ${destination}/${module}.dmd
+
+# Version information
+version=./dmini_version.txt => ${destination}/${module}_version.txt
+
+# === Documentation ===
+# Module documentation in markdown format for dmf-man tool
+docs=./docs => ${destination}/${module}/docs
+
+# README file
+readme=./README.md => ${destination}/${module}/README.md
+
+# === Header Files ===
+# Public API header
+inc=./include/dmini.h => ${destination}/${module}/include/dmini.h
+
+# Generated module definitions header
+inc_defs=./include/dmini_defs.h => ${destination}/${module}/include/dmini_defs.h
+
+# === License ===
+# License file
+license=./LICENSE => ${destination}/${module}/LICENSE
