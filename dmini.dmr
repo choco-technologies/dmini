@@ -22,11 +22,8 @@ docs=./docs => ${destination}/${module}/docs
 readme=./README.md => ${destination}/${module}/README.md
 
 # === Header Files ===
-# Public API header
-inc=./include/dmini.h => ${destination}/${module}/include/dmini.h
-
-# Generated module definitions header
-inc_defs=./include/dmini_defs.h => ${destination}/${module}/include/dmini_defs.h
+# Include directory with all headers (dmini.h and dmini_defs.h)
+inc=./include => ${destination}/${module}/include
 
 # === License ===
 # License file
