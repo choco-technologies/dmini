@@ -3,10 +3,10 @@
 
 # === Core Module ===
 # Main module file - always installed
-dmf=./dmini.dmf => ${DMOD_DMF_DIR}/${module}.dmf
+dmf=./dmini.dmf => ${destination}/${module}.dmf
 
 # Compressed module
-dmfc=./dmini.dmfc => ${DMOD_DMF_DIR}/${module}.dmfc
+dmfc=./dmini.dmfc => ${destination}/${module}.dmfc
 
 # Dependencies file (if exists)
 dmd=./dmini.dmd => ${destination}/${module}.dmd
