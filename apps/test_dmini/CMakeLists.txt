@@ -32,3 +32,6 @@ target_include_directories(${DMOD_MODULE_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../include
     ${CMAKE_BINARY_DIR}  # For dmini_defs.h
 )
+
+# Note: dmini is loaded dynamically at runtime via dmod_loader
+# No static linking needed - modules communicate via DMOD API
