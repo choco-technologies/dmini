@@ -49,6 +49,7 @@ The application tests the following dmini functionality:
 
 1. **Context Management**
    - `dmini_create()` - Create INI context
+   - `dmini_create_with_token()` - Create INI context with owner token
    - `dmini_destroy()` - Free INI context
 
 2. **Parsing**
@@ -80,6 +81,11 @@ The application tests the following dmini functionality:
    - Comments (`;` and `#`)
    - Whitespace trimming
    - Empty sections
+
+8. **Section Visibility Restriction**
+   - `dmini_set_active_section()` - Restrict context to a single section
+   - `dmini_clear_active_section()` - Remove the section restriction
+   - Token-based protection (`DMINI_ERR_LOCKED` on wrong token)
 
 ## Integration with CI
 

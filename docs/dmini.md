@@ -10,6 +10,7 @@ dmini - DMOD INI File Parser Module
 #include "dmini.h"
 
 dmini_context_t dmini_create(void);
+dmini_context_t dmini_create_with_token(unsigned int owner_token);
 void dmini_destroy(dmini_context_t ctx);
 
 int dmini_parse_string(dmini_context_t ctx, const char* data);
@@ -33,6 +34,10 @@ int dmini_has_key(dmini_context_t ctx, const char* section, const char* key);
 
 int dmini_remove_section(dmini_context_t ctx, const char* section);
 int dmini_remove_key(dmini_context_t ctx, const char* section, const char* key);
+
+int dmini_set_active_section(dmini_context_t ctx, const char* section,
+                              unsigned int owner_token);
+int dmini_clear_active_section(dmini_context_t ctx, unsigned int owner_token);
 ```
 
 ## DESCRIPTION
@@ -56,6 +61,11 @@ INI files consist of sections, key-value pairs, and comments:
 
 **dmini_create()** creates a new INI context for storing sections and 
 key-value pairs. Returns a context pointer or NULL on error.
+
+**dmini_create_with_token()** creates a new INI context protected by a magic 
+number token. The token must be supplied to **dmini_set_active_section()** and 
+**dmini_clear_active_section()** when a non-zero token is used. Passing token 
+value 0 is equivalent to calling **dmini_create()**.
 
 **dmini_destroy()** frees all memory associated with an INI context.
 
@@ -115,6 +125,20 @@ context. Returns DMINI_OK on success or an error code on failure.
 NULL for section to remove from the global section. Returns DMINI_OK on 
 success or an error code on failure.
 
+### Section Visibility Restriction
+
+**dmini_set_active_section()** restricts the context so that only the named 
+section is visible to consumers of this context. While the restriction is 
+active, all API calls treat `section == NULL` as a reference to the active 
+section, and any attempt to access a different section returns not-found / the 
+default value. Pass NULL as section to restrict to the global (unnamed) 
+section. If the context was created with a non-zero token, the matching token 
+must be supplied; otherwise DMINI_ERR_LOCKED is returned.
+
+**dmini_clear_active_section()** removes the active-section restriction so 
+that the full content of the context becomes visible again. Requires the 
+correct token when the context was created with a non-zero token.
+
 ## RETURN VALUES
 
 Functions return the following error codes:
@@ -125,6 +149,7 @@ Functions return the following error codes:
 * **DMINI_ERR_INVALID** (-3) - Invalid parameter
 * **DMINI_ERR_NOT_FOUND** (-4) - Section or key not found
 * **DMINI_ERR_FILE** (-5) - File I/O error
+* **DMINI_ERR_LOCKED** (-6) - Wrong owner token supplied to set/clear active section
 
 ## EXAMPLES
 
@@ -180,6 +205,35 @@ dmini_set_string(ctx, NULL, "global_key", "global_value");
 
 // Get global key
 const char* val = dmini_get_string(ctx, NULL, "global_key", "default");
+```
+
+### Section Visibility Restriction
+
+```c
+// Create a context protected by a token
+dmini_context_t ctx = dmini_create_with_token(0xDEADBEEF);
+
+dmini_parse_file(ctx, "config.ini");
+
+// Restrict visibility to the "network" section
+dmini_set_active_section(ctx, "network", 0xDEADBEEF);
+
+// All NULL-section calls now resolve to "network"
+const char* host = dmini_get_string(ctx, NULL, "host", "localhost");
+int port         = dmini_get_int(ctx, NULL, "port", 80);
+
+// Accessing any other section returns not-found / default
+const char* db = dmini_get_string(ctx, "database", "host", "n/a");
+// db == "n/a"
+
+// Wrong token returns DMINI_ERR_LOCKED
+int rc = dmini_clear_active_section(ctx, 0x12345678);
+// rc == DMINI_ERR_LOCKED
+
+// Correct token clears the restriction
+dmini_clear_active_section(ctx, 0xDEADBEEF);
+
+dmini_destroy(ctx);
 ```
 
 ## MEMORY FOOTPRINT
