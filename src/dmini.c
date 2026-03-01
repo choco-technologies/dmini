@@ -29,6 +29,9 @@ typedef struct dmini_section
 struct dmini_context
 {
     dmini_section_t* sections;
+    unsigned int owner_token;       /* magic number protecting active-section changes (0 = unprotected) */
+    char* active_section;           /* name of the currently active section (NULL = global section) */
+    int active_section_locked;      /* 1 when the active-section restriction is in effect */
 };
 
 // ============================================================================
@@ -113,15 +116,18 @@ static int section_names_equal(const char* name1, const char* name2)
 }
 
 /**
- * @brief Find section by name
+ * @brief Find section by name (bypasses active-section restriction)
+ *
+ * Used internally where the full section list must be searched regardless of
+ * any active-section restriction (e.g. during parsing and get_or_create).
  */
-static dmini_section_t* find_section(dmini_context_t ctx, const char* section_name)
+static dmini_section_t* find_section_raw(dmini_context_t ctx, const char* section_name)
 {
     if (!ctx)
     {
         return NULL;
     }
-    
+
     dmini_section_t* section = ctx->sections;
     while (section)
     {
@@ -131,8 +137,41 @@ static dmini_section_t* find_section(dmini_context_t ctx, const char* section_na
         }
         section = section->next;
     }
-    
+
     return NULL;
+}
+
+/**
+ * @brief Find section by name
+ *
+ * When an active-section restriction is in effect:
+ *   - section_name == NULL is remapped to the active section name.
+ *   - Any other name that does not match the active section returns NULL.
+ */
+static dmini_section_t* find_section(dmini_context_t ctx, const char* section_name)
+{
+    if (!ctx)
+    {
+        return NULL;
+    }
+
+    /* Apply active-section restriction */
+    const char* effective_name = section_name;
+    if (ctx->active_section_locked)
+    {
+        if (section_name == NULL)
+        {
+            /* NULL is remapped to the active section */
+            effective_name = ctx->active_section;
+        }
+        else if (!section_names_equal(section_name, ctx->active_section))
+        {
+            /* A different section is not visible */
+            return NULL;
+        }
+    }
+
+    return find_section_raw(ctx, effective_name);
 }
 
 /**
@@ -266,6 +305,11 @@ static void free_section(dmini_section_t* section)
 
 /**
  * @brief Get or create section
+ *
+ * When called from the public API (set_string, set_int) the active-section
+ * restriction is enforced: if it is active and section_name is not the active
+ * section, NULL is returned instead of creating a duplicate entry.
+ * During parsing the restriction is never active, so behaviour is unchanged.
  */
 static dmini_section_t* get_or_create_section(dmini_context_t ctx, const char* section_name)
 {
@@ -273,22 +317,37 @@ static dmini_section_t* get_or_create_section(dmini_context_t ctx, const char* s
     {
         return NULL;
     }
-    
-    // Try to find existing section
-    dmini_section_t* section = find_section(ctx, section_name);
+
+    /* Resolve the effective section name the same way find_section() does */
+    const char* effective_name = section_name;
+    if (ctx->active_section_locked)
+    {
+        if (section_name == NULL)
+        {
+            effective_name = ctx->active_section;
+        }
+        else if (!section_names_equal(section_name, ctx->active_section))
+        {
+            /* The requested section is not visible under the restriction */
+            return NULL;
+        }
+    }
+
+    /* Try to find existing section (raw, to avoid duplicate creation) */
+    dmini_section_t* section = find_section_raw(ctx, effective_name);
     if (section)
     {
         return section;
     }
-    
-    // Create new section
-    section = create_section(section_name);
+
+    /* Create new section using the effective name */
+    section = create_section(effective_name);
     if (!section)
     {
         return NULL;
     }
-    
-    // Add to list
+
+    /* Add to list */
     if (!ctx->sections)
     {
         ctx->sections = section;
@@ -302,7 +361,7 @@ static dmini_section_t* get_or_create_section(dmini_context_t ctx, const char* s
         }
         last->next = section;
     }
-    
+
     return section;
 }
 
@@ -393,22 +452,30 @@ void dmod_deinit(void)
 
 dmini_context_t dmini_create(void)
 {
+    return dmini_create_with_token(0);
+}
+
+dmini_context_t dmini_create_with_token(unsigned int owner_token)
+{
     dmini_context_t ctx = (dmini_context_t)Dmod_Malloc(sizeof(struct dmini_context));
     if (!ctx)
     {
         return NULL;
     }
-    
+
     ctx->sections = NULL;
-    
-    // Create global section (unnamed section for keys without section)
+    ctx->owner_token = owner_token;
+    ctx->active_section = NULL;
+    ctx->active_section_locked = 0;
+
+    /* Create global section (unnamed section for keys without section) */
     ctx->sections = create_section(NULL);
     if (!ctx->sections)
     {
         Dmod_Free(ctx);
         return NULL;
     }
-    
+
     return ctx;
 }
 
@@ -427,7 +494,12 @@ void dmini_destroy(dmini_context_t ctx)
         free_section(section);
         section = next;
     }
-    
+
+    if (ctx->active_section)
+    {
+        Dmod_Free(ctx->active_section);
+    }
+
     Dmod_Free(ctx);
 }
 
@@ -642,6 +714,14 @@ int dmini_generate_string(dmini_context_t ctx, char* buffer, size_t buffer_size)
     dmini_section_t* section = ctx->sections;
     while (section)
     {
+        /* Skip sections not visible under the active-section restriction */
+        if (ctx->active_section_locked &&
+            !section_names_equal(section->name, ctx->active_section))
+        {
+            section = section->next;
+            continue;
+        }
+
         // Section header (skip global section)
         if (section->name)
         {
@@ -691,6 +771,14 @@ int dmini_generate_string(dmini_context_t ctx, char* buffer, size_t buffer_size)
     
     while (section)
     {
+        /* Skip sections not visible under the active-section restriction */
+        if (ctx->active_section_locked &&
+            !section_names_equal(section->name, ctx->active_section))
+        {
+            section = section->next;
+            continue;
+        }
+
         // Section header (skip global section)
         if (section->name)
         {
@@ -751,6 +839,14 @@ int dmini_generate_file(dmini_context_t ctx, const char* filename)
     
     while (section)
     {
+        /* Skip sections not visible under the active-section restriction */
+        if (ctx->active_section_locked &&
+            !section_names_equal(section->name, ctx->active_section))
+        {
+            section = section->next;
+            continue;
+        }
+
         // Section header (skip global section)
         if (section->name)
         {
@@ -1030,4 +1126,60 @@ int dmini_remove_key(dmini_context_t ctx, const char* section, const char* key)
     }
     
     return DMINI_ERR_NOT_FOUND;
+}
+
+int dmini_set_active_section(dmini_context_t ctx, const char* section, unsigned int owner_token)
+{
+    if (!ctx)
+    {
+        return DMINI_ERR_INVALID;
+    }
+
+    /* Verify owner token when protection is in use */
+    if (ctx->owner_token != 0 && owner_token != ctx->owner_token)
+    {
+        return DMINI_ERR_LOCKED;
+    }
+
+    /* Free any previously stored active section name */
+    if (ctx->active_section)
+    {
+        Dmod_Free(ctx->active_section);
+        ctx->active_section = NULL;
+    }
+
+    if (section)
+    {
+        ctx->active_section = Dmod_StrDup(section);
+        if (!ctx->active_section)
+        {
+            return DMINI_ERR_MEMORY;
+        }
+    }
+
+    ctx->active_section_locked = 1;
+    return DMINI_OK;
+}
+
+int dmini_clear_active_section(dmini_context_t ctx, unsigned int owner_token)
+{
+    if (!ctx)
+    {
+        return DMINI_ERR_INVALID;
+    }
+
+    /* Verify owner token when protection is in use */
+    if (ctx->owner_token != 0 && owner_token != ctx->owner_token)
+    {
+        return DMINI_ERR_LOCKED;
+    }
+
+    if (ctx->active_section)
+    {
+        Dmod_Free(ctx->active_section);
+        ctx->active_section = NULL;
+    }
+
+    ctx->active_section_locked = 0;
+    return DMINI_OK;
 }
