@@ -72,6 +72,35 @@ static char* trim_whitespace(char* str)
 
 
 /**
+ * @brief Strip inline comment from a value string
+ *
+ * Finds the first ';' or '#' character and null-terminates the string there,
+ * effectively removing the inline comment. Note: quoted strings are not
+ * supported; a ';' or '#' inside a value will also be treated as a comment
+ * marker.
+ *
+ * @param str Value string to modify in place
+ */
+static void strip_inline_comment(char* str)
+{
+    if (!str)
+    {
+        return;
+    }
+
+    char* p = str;
+    while (*p)
+    {
+        if (*p == ';' || *p == '#')
+        {
+            *p = '\0';
+            break;
+        }
+        p++;
+    }
+}
+
+/**
  * @brief Compare section names (handles NULL values)
  */
 static int section_names_equal(const char* name1, const char* name2)
@@ -489,6 +518,7 @@ int dmini_parse_string(dmini_context_t ctx, const char* data)
         {
             *equals = '\0';
             char* key = trim_whitespace(line);
+            strip_inline_comment(equals + 1);
             char* value = trim_whitespace(equals + 1);
             
             if (*key)
@@ -580,6 +610,7 @@ int dmini_parse_file(dmini_context_t ctx, const char* filename)
         {
             *equals = '\0';
             char* key = trim_whitespace(line);
+            strip_inline_comment(equals + 1);
             char* value = trim_whitespace(equals + 1);
             
             if (*key)
