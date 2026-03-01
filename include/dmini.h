@@ -26,6 +26,7 @@
 #define DMINI_ERR_INVALID      -3
 #define DMINI_ERR_NOT_FOUND    -4
 #define DMINI_ERR_FILE         -5
+#define DMINI_ERR_LOCKED       -6
 
 /**
  * @brief INI context type (opaque)
@@ -206,5 +207,53 @@ dmod_dmini_api(1.0, int, _remove_section, (dmini_context_t ctx, const char* sect
 dmod_dmini_api(1.0, int, _remove_key, (dmini_context_t ctx, 
                                         const char* section, 
                                         const char* key));
+
+/**
+ * @brief Initialize INI context with owner token
+ *
+ * Creates a new INI context protected by a magic number token.
+ * The token must be supplied to dmini_set_active_section and
+ * dmini_clear_active_section when a non-zero token is used.
+ * Using token value 0 is equivalent to calling dmini_create().
+ *
+ * @param owner_token Magic number that guards active-section changes (0 = unprotected)
+ * @return Pointer to INI context or NULL on error
+ */
+dmod_dmini_api(1.0, dmini_context_t, _create_with_token, (unsigned int owner_token));
+
+/**
+ * @brief Set the active section restriction
+ *
+ * Restricts the context so that only the named section is visible to
+ * consumers of this context.  While the restriction is active all API
+ * calls treat section == NULL as a reference to the active section, and
+ * any attempt to access a different section returns not-found / default.
+ * Pass NULL as section to restrict to the global (unnamed) section.
+ *
+ * @param ctx        INI context
+ * @param section    Section to make active (NULL for global section)
+ * @param owner_token Magic number that was supplied to dmini_create_with_token
+ *                    (ignored when the context was created with token 0)
+ * @return DMINI_OK on success, DMINI_ERR_LOCKED if the token is wrong,
+ *         DMINI_ERR_INVALID if ctx is NULL
+ */
+dmod_dmini_api(1.0, int, _set_active_section, (dmini_context_t ctx,
+                                                const char* section,
+                                                unsigned int owner_token));
+
+/**
+ * @brief Clear the active section restriction
+ *
+ * Removes the active-section restriction so that the full content of the
+ * context becomes visible again.
+ *
+ * @param ctx        INI context
+ * @param owner_token Magic number that was supplied to dmini_create_with_token
+ *                    (ignored when the context was created with token 0)
+ * @return DMINI_OK on success, DMINI_ERR_LOCKED if the token is wrong,
+ *         DMINI_ERR_INVALID if ctx is NULL
+ */
+dmod_dmini_api(1.0, int, _clear_active_section, (dmini_context_t ctx,
+                                                  unsigned int owner_token));
 
 #endif // DMINI_H

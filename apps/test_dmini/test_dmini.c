@@ -334,8 +334,107 @@ static void test_inline_comments(void)
 }
 
 /**
- * @brief Main entry point for test application
+ * @brief Test: Active section restriction
  */
+static void test_active_section(void)
+{
+    TEST_START("Active section restriction");
+
+    const char* ini_data =
+        "global_key=global_value\n"
+        "\n"
+        "[driver1]\n"
+        "param=hello\n"
+        "\n"
+        "[driver2]\n"
+        "param=world\n";
+
+    /* --- unprotected context (token 0) --- */
+    dmini_context_t ctx = dmini_create();
+    TEST_ASSERT(ctx != NULL, "Failed to create context");
+
+    int result = dmini_parse_string(ctx, ini_data);
+    TEST_ASSERT(result == DMINI_OK, "Failed to parse string");
+
+    /* Restrict to driver1 */
+    result = dmini_set_active_section(ctx, "driver1", 0);
+    TEST_ASSERT(result == DMINI_OK, "Failed to set active section");
+
+    /* NULL maps to active section */
+    const char* val = dmini_get_string(ctx, NULL, "param", "");
+    TEST_ASSERT(strcmp(val, "hello") == 0, "NULL should map to active section");
+
+    /* Active section is also accessible by name */
+    val = dmini_get_string(ctx, "driver1", "param", "");
+    TEST_ASSERT(strcmp(val, "hello") == 0, "Active section should be accessible by name");
+
+    /* Other sections are not visible */
+    val = dmini_get_string(ctx, "driver2", "param", "not_found");
+    TEST_ASSERT(strcmp(val, "not_found") == 0, "Other section should not be visible");
+
+    TEST_ASSERT(dmini_has_section(ctx, "driver2") == 0, "driver2 should not be visible");
+    TEST_ASSERT(dmini_has_key(ctx, "driver2", "param") == 0, "key in hidden section invisible");
+
+    /* Clear restriction */
+    result = dmini_clear_active_section(ctx, 0);
+    TEST_ASSERT(result == DMINI_OK, "Failed to clear active section");
+
+    /* After clearing, all sections visible again */
+    val = dmini_get_string(ctx, "driver2", "param", "");
+    TEST_ASSERT(strcmp(val, "world") == 0, "driver2 should be visible after clearing");
+
+    dmini_destroy(ctx);
+
+    /* --- token-protected context --- */
+    const unsigned int test_token = 0xCAFEBABEu;
+    ctx = dmini_create_with_token(test_token);
+    TEST_ASSERT(ctx != NULL, "Failed to create context with token");
+
+    result = dmini_parse_string(ctx, ini_data);
+    TEST_ASSERT(result == DMINI_OK, "Failed to parse string");
+
+    /* Wrong token must be rejected */
+    result = dmini_set_active_section(ctx, "driver1", test_token + 1);
+    TEST_ASSERT(result == DMINI_ERR_LOCKED, "Wrong token should be rejected");
+
+    /* Correct token must succeed */
+    result = dmini_set_active_section(ctx, "driver1", test_token);
+    TEST_ASSERT(result == DMINI_OK, "Correct token should succeed");
+
+    val = dmini_get_string(ctx, NULL, "param", "");
+    TEST_ASSERT(strcmp(val, "hello") == 0, "Active section accessible via NULL");
+
+    /* Wrong token must not clear restriction */
+    result = dmini_clear_active_section(ctx, test_token + 1);
+    TEST_ASSERT(result == DMINI_ERR_LOCKED, "Wrong token should not clear restriction");
+
+    /* Section is still restricted after failed clear */
+    val = dmini_get_string(ctx, "driver2", "param", "not_found");
+    TEST_ASSERT(strcmp(val, "not_found") == 0, "Restriction should still be active");
+
+    /* Correct token clears restriction */
+    result = dmini_clear_active_section(ctx, test_token);
+    TEST_ASSERT(result == DMINI_OK, "Correct token should clear restriction");
+
+    val = dmini_get_string(ctx, "driver2", "param", "");
+    TEST_ASSERT(strcmp(val, "world") == 0, "All sections visible after clear");
+
+    /* Active section set to NULL (global section) */
+    result = dmini_set_active_section(ctx, NULL, test_token);
+    TEST_ASSERT(result == DMINI_OK, "Setting active section to NULL (global) should succeed");
+
+    val = dmini_get_string(ctx, NULL, "global_key", "");
+    TEST_ASSERT(strcmp(val, "global_value") == 0, "Global section visible via NULL active section");
+
+    val = dmini_get_string(ctx, "driver1", "param", "not_found");
+    TEST_ASSERT(strcmp(val, "not_found") == 0, "Named sections hidden when global is active");
+
+    dmini_clear_active_section(ctx, test_token);
+    dmini_destroy(ctx);
+    TEST_PASS();
+}
+
+
 int main(int argc, char** argv)
 {
     DMOD_LOG_INFO("=== DMINI Functionality Tests ===\n\n");
@@ -353,6 +452,7 @@ int main(int argc, char** argv)
     test_file_io();
     test_comments_whitespace();
     test_inline_comments();
+    test_active_section();
     
     // Print summary
     Dmod_Printf("\n=== Test Summary ===\n");
