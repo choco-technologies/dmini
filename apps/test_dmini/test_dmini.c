@@ -302,6 +302,38 @@ static void test_comments_whitespace(void)
 }
 
 /**
+ * @brief Test: Inline comments are stripped from values
+ */
+static void test_inline_comments(void)
+{
+    TEST_START("Strip inline comments from values");
+
+    const char* ini_data =
+        "Port=A  ; some comment\n"
+        "key1=value1 # hash comment\n"
+        "[section1]\n"
+        "key2 = value2  ; trailing comment\n";
+
+    dmini_context_t ctx = dmini_create();
+    TEST_ASSERT(ctx != NULL, "Failed to create context");
+
+    int result = dmini_parse_string(ctx, ini_data);
+    TEST_ASSERT(result == 0, "Failed to parse string");
+
+    const char* val = dmini_get_string(ctx, NULL, "Port", "");
+    TEST_ASSERT(strcmp(val, "A") == 0, "Inline semicolon comment not stripped");
+
+    val = dmini_get_string(ctx, NULL, "key1", "");
+    TEST_ASSERT(strcmp(val, "value1") == 0, "Inline hash comment not stripped");
+
+    val = dmini_get_string(ctx, "section1", "key2", "");
+    TEST_ASSERT(strcmp(val, "value2") == 0, "Inline comment in section not stripped");
+
+    dmini_destroy(ctx);
+    TEST_PASS();
+}
+
+/**
  * @brief Main entry point for test application
  */
 int main(int argc, char** argv)
@@ -320,6 +352,7 @@ int main(int argc, char** argv)
     test_generate_string();
     test_file_io();
     test_comments_whitespace();
+    test_inline_comments();
     
     // Print summary
     Dmod_Printf("\n=== Test Summary ===\n");
