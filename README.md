@@ -43,6 +43,12 @@ dmini is a lightweight INI file parser/generator module designed for embedded sy
 - `dmini_has_section(ctx, section)` - Check if section exists
 - `dmini_has_key(ctx, section, key)` - Check if key exists
 
+### Iteration
+- `dmini_section_count(ctx)` - Get number of sections (including global)
+- `dmini_section_name(ctx, index)` - Get section name at index (NULL for global section)
+- `dmini_key_count(ctx, section)` - Get number of keys in a section
+- `dmini_key_name(ctx, section, index)` - Get key name at index within a section
+
 ### Section Visibility Restriction
 - `dmini_set_active_section(ctx, section, owner_token)` - Restrict the context to a single section
 - `dmini_clear_active_section(ctx, owner_token)` - Remove the section restriction

@@ -38,6 +38,11 @@ int dmini_remove_key(dmini_context_t ctx, const char* section, const char* key);
 int dmini_set_active_section(dmini_context_t ctx, const char* section,
                               unsigned int owner_token);
 int dmini_clear_active_section(dmini_context_t ctx, unsigned int owner_token);
+
+int dmini_section_count(dmini_context_t ctx);
+const char* dmini_section_name(dmini_context_t ctx, int index);
+int dmini_key_count(dmini_context_t ctx, const char* section);
+const char* dmini_key_name(dmini_context_t ctx, const char* section, int index);
 ```
 
 ## DESCRIPTION
@@ -124,6 +129,27 @@ context. Returns DMINI_OK on success or an error code on failure.
 **dmini_remove_key()** removes a single key from the specified section. Pass 
 NULL for section to remove from the global section. Returns DMINI_OK on 
 success or an error code on failure.
+
+### Iteration
+
+**dmini_section_count()** returns the total number of sections in the context,
+including the global (unnamed) section. Respects the active-section restriction
+when it is in effect. Returns DMINI_ERR_INVALID if ctx is NULL.
+
+**dmini_section_name()** returns the name of the section at the given
+zero-based index. The global (unnamed) section is represented by NULL. Returns
+NULL when the index is out of range. Use dmini_section_count() to determine
+the valid range. Respects the active-section restriction when it is in effect.
+
+**dmini_key_count()** returns the number of key-value pairs in the specified
+section. Pass NULL for section to query the global section. Returns
+DMINI_ERR_INVALID if ctx is NULL, or DMINI_ERR_NOT_FOUND if the section does
+not exist. Respects the active-section restriction when it is in effect.
+
+**dmini_key_name()** returns the name of the key at the given zero-based index
+within the specified section. Returns NULL when the index is out of range or
+the section does not exist. Use dmini_key_count() to determine the valid range.
+Respects the active-section restriction when it is in effect.
 
 ### Section Visibility Restriction
 

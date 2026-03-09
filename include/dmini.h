@@ -209,6 +209,60 @@ dmod_dmini_api(1.0, int, _remove_key, (dmini_context_t ctx,
                                         const char* key));
 
 /**
+ * @brief Get number of sections in the context
+ *
+ * Returns the total number of sections, including the global (unnamed) section.
+ * Respects the active-section restriction when it is in effect.
+ *
+ * @param ctx INI context
+ * @return Number of sections, or DMINI_ERR_INVALID if ctx is NULL
+ */
+dmod_dmini_api(1.0, int, _section_count, (dmini_context_t ctx));
+
+/**
+ * @brief Get section name at the given index
+ *
+ * Returns the name of the section at position @p index (0-based).
+ * The global (unnamed) section is represented by NULL.
+ * Respects the active-section restriction when it is in effect.
+ * Use dmini_section_count() to determine the valid index range.
+ *
+ * @param ctx   INI context
+ * @param index Zero-based section index
+ * @return Section name, NULL for the global section, or NULL if index is out of range
+ */
+dmod_dmini_api(1.0, const char*, _section_name, (dmini_context_t ctx, int index));
+
+/**
+ * @brief Get number of keys in a section
+ *
+ * Returns the number of key-value pairs in the given section.
+ * Respects the active-section restriction when it is in effect.
+ *
+ * @param ctx     INI context
+ * @param section Section name (NULL for global section)
+ * @return Number of keys, or DMINI_ERR_INVALID if ctx is NULL,
+ *         or DMINI_ERR_NOT_FOUND if section does not exist
+ */
+dmod_dmini_api(1.0, int, _key_count, (dmini_context_t ctx, const char* section));
+
+/**
+ * @brief Get key name at the given index within a section
+ *
+ * Returns the name of the key at position @p index (0-based) within @p section.
+ * Use dmini_key_count() to determine the valid index range.
+ * Respects the active-section restriction when it is in effect.
+ *
+ * @param ctx     INI context
+ * @param section Section name (NULL for global section)
+ * @param index   Zero-based key index
+ * @return Key name, or NULL if index is out of range or section not found
+ */
+dmod_dmini_api(1.0, const char*, _key_name, (dmini_context_t ctx,
+                                              const char* section,
+                                              int index));
+
+/**
  * @brief Initialize INI context with owner token
  *
  * Creates a new INI context protected by a magic number token.

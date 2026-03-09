@@ -1128,6 +1128,106 @@ int dmini_remove_key(dmini_context_t ctx, const char* section, const char* key)
     return DMINI_ERR_NOT_FOUND;
 }
 
+int dmini_section_count(dmini_context_t ctx)
+{
+    if (!ctx)
+    {
+        return DMINI_ERR_INVALID;
+    }
+
+    int count = 0;
+    dmini_section_t* section = ctx->sections;
+    while (section)
+    {
+        if (!ctx->active_section_locked ||
+            section_names_equal(section->name, ctx->active_section))
+        {
+            count++;
+        }
+        section = section->next;
+    }
+
+    return count;
+}
+
+const char* dmini_section_name(dmini_context_t ctx, int index)
+{
+    if (!ctx || index < 0)
+    {
+        return NULL;
+    }
+
+    int current = 0;
+    dmini_section_t* section = ctx->sections;
+    while (section)
+    {
+        if (!ctx->active_section_locked ||
+            section_names_equal(section->name, ctx->active_section))
+        {
+            if (current == index)
+            {
+                return section->name;
+            }
+            current++;
+        }
+        section = section->next;
+    }
+
+    return NULL;
+}
+
+int dmini_key_count(dmini_context_t ctx, const char* section)
+{
+    if (!ctx)
+    {
+        return DMINI_ERR_INVALID;
+    }
+
+    dmini_section_t* sec = find_section(ctx, section);
+    if (!sec)
+    {
+        return DMINI_ERR_NOT_FOUND;
+    }
+
+    int count = 0;
+    dmini_pair_t* pair = sec->pairs;
+    while (pair)
+    {
+        count++;
+        pair = pair->next;
+    }
+
+    return count;
+}
+
+const char* dmini_key_name(dmini_context_t ctx, const char* section, int index)
+{
+    if (!ctx || index < 0)
+    {
+        return NULL;
+    }
+
+    dmini_section_t* sec = find_section(ctx, section);
+    if (!sec)
+    {
+        return NULL;
+    }
+
+    int current = 0;
+    dmini_pair_t* pair = sec->pairs;
+    while (pair)
+    {
+        if (current == index)
+        {
+            return pair->key;
+        }
+        current++;
+        pair = pair->next;
+    }
+
+    return NULL;
+}
+
 int dmini_set_active_section(dmini_context_t ctx, const char* section, unsigned int owner_token)
 {
     if (!ctx)

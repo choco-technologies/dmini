@@ -334,6 +334,90 @@ static void test_inline_comments(void)
 }
 
 /**
+ * @brief Test: Iteration over sections and keys
+ */
+static void test_iteration(void)
+{
+    TEST_START("Iterate over sections and keys");
+
+    const char* ini_data =
+        "global_key=global_value\n"
+        "\n"
+        "[section1]\n"
+        "key1=value1\n"
+        "key2=value2\n"
+        "\n"
+        "[section2]\n"
+        "number=42\n";
+
+    dmini_context_t ctx = dmini_create();
+    TEST_ASSERT(ctx != NULL, "Failed to create context");
+
+    int result = dmini_parse_string(ctx, ini_data);
+    TEST_ASSERT(result == DMINI_OK, "Failed to parse string");
+
+    /* Section count: global + section1 + section2 */
+    int sc = dmini_section_count(ctx);
+    TEST_ASSERT(sc == 3, "Expected 3 sections");
+
+    /* Section names: index 0 = global (NULL), 1 = section1, 2 = section2 */
+    const char* name0 = dmini_section_name(ctx, 0);
+    TEST_ASSERT(name0 == NULL, "Index 0 should be global section (NULL)");
+
+    const char* name1 = dmini_section_name(ctx, 1);
+    TEST_ASSERT(name1 != NULL && strcmp(name1, "section1") == 0, "Index 1 should be section1");
+
+    const char* name2 = dmini_section_name(ctx, 2);
+    TEST_ASSERT(name2 != NULL && strcmp(name2, "section2") == 0, "Index 2 should be section2");
+
+    /* Out-of-range index returns NULL */
+    TEST_ASSERT(dmini_section_name(ctx, 3) == NULL, "Out-of-range index should return NULL");
+
+    /* Key count for global section */
+    int kc = dmini_key_count(ctx, NULL);
+    TEST_ASSERT(kc == 1, "Global section should have 1 key");
+
+    /* Key count for section1 */
+    kc = dmini_key_count(ctx, "section1");
+    TEST_ASSERT(kc == 2, "section1 should have 2 keys");
+
+    /* Key names for section1 */
+    const char* kname0 = dmini_key_name(ctx, "section1", 0);
+    TEST_ASSERT(kname0 != NULL && strcmp(kname0, "key1") == 0, "Index 0 key should be key1");
+
+    const char* kname1 = dmini_key_name(ctx, "section1", 1);
+    TEST_ASSERT(kname1 != NULL && strcmp(kname1, "key2") == 0, "Index 1 key should be key2");
+
+    /* Out-of-range key index returns NULL */
+    TEST_ASSERT(dmini_key_name(ctx, "section1", 2) == NULL, "Out-of-range key index should return NULL");
+
+    /* Non-existent section returns DMINI_ERR_NOT_FOUND for key_count */
+    TEST_ASSERT(dmini_key_count(ctx, "nonexistent") == DMINI_ERR_NOT_FOUND,
+                "Non-existent section should return DMINI_ERR_NOT_FOUND");
+
+    /* NULL ctx returns DMINI_ERR_INVALID */
+    TEST_ASSERT(dmini_section_count(NULL) == DMINI_ERR_INVALID, "NULL ctx should return DMINI_ERR_INVALID");
+    TEST_ASSERT(dmini_key_count(NULL, "section1") == DMINI_ERR_INVALID, "NULL ctx should return DMINI_ERR_INVALID");
+
+    /* Active section restriction: only active section is visible */
+    result = dmini_set_active_section(ctx, "section1", 0);
+    TEST_ASSERT(result == DMINI_OK, "Failed to set active section");
+
+    TEST_ASSERT(dmini_section_count(ctx) == 1, "Only 1 section visible under restriction");
+    TEST_ASSERT(dmini_section_name(ctx, 0) != NULL &&
+                strcmp(dmini_section_name(ctx, 0), "section1") == 0,
+                "Active section should be section1");
+
+    TEST_ASSERT(dmini_key_count(ctx, "section1") == 2, "section1 keys still accessible by name");
+    TEST_ASSERT(dmini_key_count(ctx, "section2") == DMINI_ERR_NOT_FOUND,
+                "section2 hidden under restriction");
+
+    dmini_clear_active_section(ctx, 0);
+    dmini_destroy(ctx);
+    TEST_PASS();
+}
+
+/**
  * @brief Test: Active section restriction
  */
 static void test_active_section(void)
@@ -452,6 +536,7 @@ int main(int argc, char** argv)
     test_file_io();
     test_comments_whitespace();
     test_inline_comments();
+    test_iteration();
     test_active_section();
     
     // Print summary
