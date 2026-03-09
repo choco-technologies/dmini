@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     dmod
     GIT_REPOSITORY https://github.com/choco-technologies/dmod.git
-    GIT_TAG        69a8f7446a377751d6e1d5be33ba77521eda84cc
+    GIT_TAG        develop
 )
 
 # ======================================================================
